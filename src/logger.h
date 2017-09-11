@@ -6,6 +6,16 @@
 #include <string.h>
 #include <errno.h>
 
+#ifdef DEBUG
+/* log debug */
+#define log_debug(msg) fprintf(stdout, "[\x1B[34m~\x1B[0m] " msg "\n");
+/* log formatted debug */
+#define log_debugf(msg, ...) fprintf(stdout, "[\x1B[34m~\x1B[0m] " msg "\n", ##__VA_ARGS__);
+#else
+#define log_debug(msg)
+#define log_debugf(msg, ...)
+#endif // DEBUG
+
 /* log info */
 #define log_info(msg) fprintf(stdout, "[\x1B[32m*\x1B[0m] " msg "\n");
 /* log formatted info */

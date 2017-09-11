@@ -2,29 +2,9 @@
 #include <stdlib.h>
 
 #include <elf.h>
-#include <sys/mman.h>
 
 #include "logger.h"
-#include "file.h"
-
-int elfi_map(int fd, void **data, int *len)
-{
-    int size;
-
-    size = file_get_size(fd);
-
-    *data = mmap(0, size, PROT_READ| PROT_WRITE| PROT_EXEC, MAP_SHARED, fd, 0);
-    if (data == MAP_FAILED) {
-        log_perr("mmap");
-        exit(1);
-    }
-
-    log_infof("file (%d bytes) mapped at %p", size, data);
-
-    *len = size;
-
-    return fd;
-}
+#include "elf.h"
 
 int main(int argc, char *argv[])
 {
@@ -35,6 +15,10 @@ int main(int argc, char *argv[])
 
     Elf64_Ehdr* elf_hdr;
     Elf64_Addr elf_ep;
+    Elf64_Phdr *elf_text;
+
+    int gap_offset;
+    int gap_len;
 
     if (argc != 2) {
         fprintf(stderr, "usage: %s target\n", argv[0]);
@@ -58,6 +42,14 @@ int main(int argc, char *argv[])
     elf_ep = elf_hdr->e_entry;
 
     log_infof("target entry point: %p", (void *) elf_ep);
+
+    elfi_dump_segments(elf_hdr);
+
+    /* Find executable segment and obtain offset and gap size */
+    elf_text = elfi_find_gap(target_data, target_fsize, &gap_offset, &gap_len);
+    /* base = t_text_seg->p_vaddr; */
+
+    log_infof("target .text seg: %p", (void *) elf_text);
 
     /* clean up */
     close(target_fd);
