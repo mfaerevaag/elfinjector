@@ -8,13 +8,14 @@ ODIR = build
 SRC = $(wildcard $(SDIR)/*.c)
 OBJ = $(patsubst $(SDIR)/%.c, $(ODIR)/%.o, $(SRC))
 
+DUMMY = dummy
 PAYLOAD = payload
 
 TARGET = encexpl
 
-.PHONY: all debug release payload clean
+.PHONY: all debug release clean dummy payload
 
-all: debug
+all: dummy payload debug
 
 $(ODIR):
 	mkdir -p $@
@@ -35,5 +36,10 @@ payload: $(PAYLOAD).s
 	nasm -f elf64 -o $(ODIR)/$(PAYLOAD).o $<
 	ld -o $(ODIR)/$(PAYLOAD) $(ODIR)/$(PAYLOAD).o
 
+dummy: $(DUMMY).c
+	$(CC) -O0 -o $(ODIR)/$(DUMMY) $<
+
 clean:
 	rm -rf $(ODIR)/*
+
+.SPECIAL: $(ODIR)/$(DUMMY)
