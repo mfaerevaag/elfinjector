@@ -16,5 +16,5 @@ _start:
   syscall
 
 align 8
-  msg     db 'such infected, much wow',0x0a,0
+  msg     db 0x1b,'[31msuch infected, much wow!',0x1b,'[0m',0x0a,0
   msg_end db 0x0
