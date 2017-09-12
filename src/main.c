@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
     if (payload_text_sec->sh_size > (unsigned long) gap_len) {
         log_errf("payload to big, cannot infect file (%lu > %d)",
                  payload_text_sec->sh_size, gap_len);
-        exit(1);
+        goto error;
     }
 
     /* copy payload in the segment padding area */
@@ -94,11 +94,7 @@ int main(int argc, char *argv[])
     if (ret) {
         log_errf("failed to patch return address (%p)",
                  (void *) (target_data + gap_offset));
-
-        close(target_fd);
-        close(payload_fd);
-
-        exit(1);
+        goto error;
     }
 
     /* patch entry point */
@@ -114,4 +110,10 @@ int main(int argc, char *argv[])
     close(payload_fd);
 
     return 0;
+
+ error:
+    close(target_fd);
+    close(payload_fd);
+
+    return 1;
 }
