@@ -11,7 +11,7 @@ OBJ = $(patsubst $(SDIR)/%.c, $(ODIR)/%.o, $(SRC))
 DUMMY = dummy
 PAYLOAD = payload
 
-TARGET = encexpl
+TARGET = elfinjector
 
 .PHONY: all debug release clean dummy payload
 
