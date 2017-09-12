@@ -58,6 +58,10 @@ int main(int argc, char *argv[])
     /* find executable segment and obtain offset and gap size */
     target_text_seg = elfi_find_gap(target_data, target_fsize,
                                     &gap_offset, &gap_len);
+    if (target_text_seg == NULL) {
+        log_err("failed to find gab");
+        exit(1);
+    }
     target_base = target_text_seg->p_vaddr;
 
     log_debugf("target base address: %p", (void *) target_base);

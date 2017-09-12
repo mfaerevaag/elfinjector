@@ -21,18 +21,20 @@ int elfi_map(int fd, void **data, int *len)
 
 int elfi_mem_subst(void *mem, int len, long pat, long val)
 {
-    unsigned char *p;
-    long           v;
-    int            i, r;
+    int i;
+    long data;
+    unsigned char *ptr;
 
-    p = (unsigned char *) mem;
+    /* pointer to code */
+    ptr = (unsigned char *) mem;
 
     for (i = 0; i < len; i++) {
-        v = *((long *) (p+i));
-        r = v ^ pat;
+        /* get value under pointer plus offset */
+        data = *((long *) (ptr + i));
 
-        if (r == 0) {
-            *((long *) (p + i)) = val;
+        /* check matching pattern */
+        if ((data ^ pat) == 0) {
+            *((long *) (ptr + i)) = val;
 
             log_debugf("pattern %lx at offset %d -> %lx", pat, i, val);
 
@@ -45,70 +47,88 @@ int elfi_mem_subst(void *mem, int len, long pat, long val)
 
 Elf64_Phdr *elfi_find_gap(void *data, int fsize, int *gap_offset, int *gap_len)
 {
-    Elf64_Ehdr *elf_hdr;
-    Elf64_Phdr *elf_seg, *text_seg;
-    int         n_seg;
-    int         i;
-    int         text_end, gap;
+    int         text_end;
+    Elf64_Ehdr *hdr;
+    Elf64_Phdr *next_seg, *text_seg;
 
-    elf_hdr = (Elf64_Ehdr *) data;
-    n_seg = elf_hdr->e_phnum;
-    gap = fsize;
+    hdr = (Elf64_Ehdr *) data;
+    text_seg = NULL;
 
-    elf_seg = (Elf64_Phdr *) ((unsigned char*) elf_hdr
-                              + (unsigned int) elf_hdr->e_phoff);
-
-    /* TODO: refactor */
-    for (i = 0; i < n_seg; i++) {
-        /* found .text */
-        if (elf_seg->p_type == PT_LOAD && elf_seg->p_flags & 0x11) {
-            log_debugf("found .text segment (#%d)", i);
-
-            text_seg = elf_seg;
-            text_end = elf_seg->p_offset + elf_seg->p_filesz;
-        }
-        /* found PT_LOAD segment after */
-        else if (elf_seg->p_type == PT_LOAD && (elf_seg->p_offset - text_end) < gap) {
-            log_debugf("\tfound LOAD segment (#%d) close to .text (offset: 0x%x)",
-                      i, (unsigned int) elf_seg->p_offset);
-
-            gap = elf_seg->p_offset - text_end;
-            /* TODO: break? find larger? */
-        }
-
-        elf_seg = (Elf64_Phdr *) ((unsigned char*) elf_seg
-                                  + (unsigned int) elf_hdr->e_phentsize);
+    /* find .text */
+    text_seg = elfi_find_text(data);
+    if (text_seg == NULL) {
+        log_err("unable to find segment with .text section");
+        return NULL;
     }
 
-    *gap_offset = text_end;
-    *gap_len = gap;
+    /* end of .text section */
+    text_end = text_seg->p_offset + text_seg->p_filesz;
 
-    log_infof("gap in .text segment at offset 0x%x (0x%x bytes available)", text_end, gap);
+    /* following segment */
+    next_seg = (Elf64_Phdr *) ((unsigned char*) text_seg
+                          + (unsigned int) hdr->e_phentsize);
+
+    /* check for gap */
+    if (next_seg->p_type == PT_LOAD &&
+        (next_seg->p_offset - text_end) < (unsigned int) fsize) {
+        log_infof("gap in .text segment at offset 0x%x (0x%lx bytes available)",
+                  text_end, next_seg->p_offset - text_end);
+
+        *gap_offset = text_end;
+        *gap_len = next_seg->p_offset - text_end;
+    } else {
+        log_err("not gab found in following segment");
+        return NULL;
+    }
 
     return text_seg;
 }
 
+Elf64_Phdr *elfi_find_text(void *data)
+{
+    int         i;
+    Elf64_Ehdr *hdr;
+    Elf64_Phdr *seg;
+
+    hdr = (Elf64_Ehdr *) data;
+    seg = (Elf64_Phdr *) ((unsigned char*) hdr +
+                          (unsigned int) hdr->e_phoff);
+
+    /* iterate segments */
+    for (i = 0; i < hdr->e_phnum; i++) {
+        /* if PT_LOAD with read and exec permissions */
+        if (seg->p_type == PT_LOAD && seg->p_flags & 0x11) {
+            log_debugf("found .text segment (#%d)", i);
+            break;
+        }
+
+        seg = (Elf64_Phdr *) ((unsigned char *) seg +
+                              (unsigned int) hdr->e_phentsize);
+    }
+
+    return seg;
+}
+
 Elf64_Shdr *elfi_find_section(void *data, char *name)
 {
-    char       *sname;
     int        i;
-    Elf64_Ehdr *elf_hdr;
-    Elf64_Shdr *shdr;
-    Elf64_Shdr *sh_strtab;
+    char       *sname;
+    Elf64_Ehdr *hdr;
+    Elf64_Shdr *shdr, *sh_strtab;
     char       *sh_strtab_p;
 
-    elf_hdr = (Elf64_Ehdr *) data;
-    shdr = (Elf64_Shdr *)(data + elf_hdr->e_shoff);
-    sh_strtab = &shdr[elf_hdr->e_shstrndx];
-    sh_strtab_p = data + sh_strtab->sh_offset;
+    hdr = (Elf64_Ehdr *) data;
+    shdr = (Elf64_Shdr *)(data + hdr->e_shoff);
+    sh_strtab = &shdr[hdr->e_shstrndx];
+    sh_strtab_p = data + sh_strtab->sh_offset; /* store ptr to strtab */
 
     log_debugf("%d sections in file. looking for section '%s'",
-               elf_hdr->e_shnum, name);
+               hdr->e_shnum, name);
 
-    for (i = 0; i < elf_hdr->e_shnum; i++) {
-        sname = (char*) (sh_strtab_p + shdr[i].sh_name);
+    for (i = 0; i < hdr->e_shnum; i++) {
+        sname = (char *) (sh_strtab_p + shdr[i].sh_name);
 
-        if (!strcmp (sname, name)) {
+        if (!strcmp(sname, name)) {
             return &shdr[i];
         }
     }
@@ -118,25 +138,25 @@ Elf64_Shdr *elfi_find_section(void *data, char *name)
 
 void elfi_dump_segments(void *data)
 {
-    Elf64_Ehdr *elf_hdr;
-    Elf64_Phdr *elf_seg;
     int         i, n_seg;
+    Elf64_Ehdr *hdr;
+    Elf64_Phdr *seg;
 
-    elf_hdr = (Elf64_Ehdr *) data;
-    n_seg = elf_hdr->e_phnum;
+    hdr = (Elf64_Ehdr *) data;
+    n_seg = hdr->e_phnum;
 
-    elf_seg = (Elf64_Phdr *) ((unsigned char*) elf_hdr
-                              + (unsigned int) elf_hdr->e_phoff);
+    seg = (Elf64_Phdr *) ((unsigned char*) hdr
+                          + (unsigned int) hdr->e_phoff);
 
     for (i = 0; i < n_seg; i++) {
         log_debugf("segment %d: type: %8x (%x) offset: %8x "
                    "fsize:%8x msize:%8x",
-                   i, elf_seg->p_type, elf_seg->p_flags,
-                   (unsigned int) elf_seg->p_offset,
-                   (unsigned int) elf_seg->p_filesz,
-                   (unsigned int) elf_seg->p_memsz);
+                   i, seg->p_type, seg->p_flags,
+                   (unsigned int) seg->p_offset,
+                   (unsigned int) seg->p_filesz,
+                   (unsigned int) seg->p_memsz);
 
-        elf_seg = (Elf64_Phdr *) ((unsigned char*) elf_seg
-                                  + (unsigned int) elf_hdr->e_phentsize);
+        seg = (Elf64_Phdr *) ((unsigned char*) seg
+                              + (unsigned int) hdr->e_phentsize);
     }
 }
