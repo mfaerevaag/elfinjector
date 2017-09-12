@@ -45,11 +45,15 @@ int main(int argc, char *argv[])
     target_fd  = elfi_map(target_fd, &target_data, &target_fsize);
     payload_fd = elfi_map(payload_fd, &payload_data, &payload_fsize);
 
-    /* TODO: check that elf is of type EXEC */
-
     /* get target binary entry point */
     target_hdr = (Elf64_Ehdr *) target_data;
     target_ep = target_hdr->e_entry;
+
+    /* check that elf is of type EXEC */
+    if (target_hdr->e_type != ET_EXEC) {
+        log_err("target not of type ET_EXEC (PIE not supported)");
+        goto error;
+    }
 
     log_debugf("target entry point: %p", (void *) target_ep);
 
