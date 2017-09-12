@@ -37,7 +37,7 @@ payload: $(PAYLOAD).s
 	ld -o $(ODIR)/$(PAYLOAD) $(ODIR)/$(PAYLOAD).o
 
 dummy: $(DUMMY).c
-	$(CC) -O0 -o $(ODIR)/$(DUMMY) $<
+	$(CC) -O0 -no-pie -o $(ODIR)/$(DUMMY) $<
 
 clean:
 	rm -rf $(ODIR)/*
