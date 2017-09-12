@@ -12,7 +12,7 @@ int elfi_map(int fd, void **data, int *len)
         exit(1);
     }
 
-    log_infof("file (%d bytes) mapped at %p", size, data);
+    log_debugf("file (%d bytes) mapped at %p", size, data);
 
     *len = size;
 
@@ -32,9 +32,9 @@ int elfi_mem_subst(void *mem, int len, long pat, long val)
         r = v ^ pat;
 
         if (r == 0) {
-            log_infof("pattern %lx found at offset %d -> %lx", pat, i, val);
-
             *((long *) (p + i)) = val;
+
+            log_debugf("pattern %lx at offset %d -> %lx", pat, i, val);
 
             return 0;
         }
@@ -58,17 +58,18 @@ Elf64_Phdr *elfi_find_gap(void *data, int fsize, int *gap_offset, int *gap_len)
     elf_seg = (Elf64_Phdr *) ((unsigned char*) elf_hdr
                               + (unsigned int) elf_hdr->e_phoff);
 
+    /* TODO: refactor */
     for (i = 0; i < n_seg; i++) {
         /* found .text */
         if (elf_seg->p_type == PT_LOAD && elf_seg->p_flags & 0x11) {
-            log_infof("found .text segment (#%d)", i);
+            log_debugf("found .text segment (#%d)", i);
 
             text_seg = elf_seg;
             text_end = elf_seg->p_offset + elf_seg->p_filesz;
         }
         /* found PT_LOAD segment after */
         else if (elf_seg->p_type == PT_LOAD && (elf_seg->p_offset - text_end) < gap) {
-            log_infof("\tfound LOAD segment (#%d) close to .text (offset: 0x%x)",
+            log_debugf("\tfound LOAD segment (#%d) close to .text (offset: 0x%x)",
                       i, (unsigned int) elf_seg->p_offset);
 
             gap = elf_seg->p_offset - text_end;
@@ -101,8 +102,8 @@ Elf64_Shdr *elfi_find_section(void *data, char *name)
     sh_strtab = &shdr[elf_hdr->e_shstrndx];
     sh_strtab_p = data + sh_strtab->sh_offset;
 
-    log_infof("%d sections in file. looking for section '%s'",
-              elf_hdr->e_shnum, name);
+    log_debugf("%d sections in file. looking for section '%s'",
+               elf_hdr->e_shnum, name);
 
     for (i = 0; i < elf_hdr->e_shnum; i++) {
         sname = (char*) (sh_strtab_p + shdr[i].sh_name);

