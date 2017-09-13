@@ -27,16 +27,16 @@ $(ODIR)/$(TARGET): $(ODIR) $(OBJ)
 	$(CC) $(CFLAGS) $(CLIBS) -o $@ $(OBJ)
 
 release: CFLAGS += -O3
-release: $(ODIR)/$(TARGET)
+release: $(ODIR)/$(TARGET) $(ODIR)
 
 debug: CFLAGS += -g -DDEBUG
-debug: $(ODIR)/$(TARGET)
+debug: $(ODIR)/$(TARGET) $(ODIR)
 
-payload: $(PAYLOAD).s
+payload: $(PAYLOAD).s $(ODIR)
 	nasm -f elf64 -o $(ODIR)/$(PAYLOAD).o $<
 	ld -o $(ODIR)/$(PAYLOAD) $(ODIR)/$(PAYLOAD).o
 
-dummy: $(DUMMY).c
+dummy: $(DUMMY).c $(ODIR)
 	$(CC) -O0 -no-pie -o $(ODIR)/$(DUMMY) $<
 
 clean:
