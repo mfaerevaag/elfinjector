@@ -109,7 +109,7 @@ Elf64_Phdr *elf_find_text(void *data)
     /* iterate segments */
     for (i = 0; i < hdr->e_phnum; i++) {
         /* if PT_LOAD with read and exec permissions */
-        if (seg->p_type == PT_LOAD && seg->p_flags & 0x11) {
+        if (seg->p_type == PT_LOAD && seg->p_flags & (PF_R | PF_X)) {
             log_debugf("found .text segment (#%d)", i);
             break;
         }
