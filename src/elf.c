@@ -47,7 +47,7 @@ int elfi_mem_subst(void *mem, int len, long pat, long val)
 
 Elf64_Phdr *elfi_find_gap(void *data, int fsize, int *gap_offset, int *gap_len)
 {
-    int         text_end;
+    int         text_end, len;
     Elf64_Ehdr *hdr;
     Elf64_Phdr *next_seg, *text_seg;
 
@@ -71,13 +71,16 @@ Elf64_Phdr *elfi_find_gap(void *data, int fsize, int *gap_offset, int *gap_len)
     /* check for gap */
     if (next_seg->p_type == PT_LOAD &&
         (next_seg->p_offset - text_end) < (unsigned int) fsize) {
-        log_infof("gap in .text segment at offset 0x%x (0x%lx bytes available)",
-                  text_end, next_seg->p_offset - text_end);
+        len = next_seg->p_offset - text_end;
+
+        log_infof("gap in .text segment at offset 0x%x (0x%x bytes available)",
+                  text_end, len);
 
         *gap_offset = text_end;
-        *gap_len = next_seg->p_offset - text_end;
+        *gap_len = len;
     } else {
         log_err("not gab found in following segment");
+
         return NULL;
     }
 
