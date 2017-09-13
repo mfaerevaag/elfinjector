@@ -45,6 +45,12 @@ int main(int argc, char *argv[])
     target_fd  = elf_map(target_fd, &target_data, &target_fsize);
     payload_fd = elf_map(payload_fd, &payload_data, &payload_fsize);
 
+    /* check target is valid elf */
+    if (!elf_check_magic(target_data)) {
+        log_err("target not valid ELF");
+        goto error;
+    }
+
     /* get target binary entry point */
     target_hdr = (Elf64_Ehdr *) target_data;
     target_ep = target_hdr->e_entry;

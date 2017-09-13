@@ -1,5 +1,14 @@
 #include "elf.h"
 
+int elf_check_magic(void *data)
+{
+    if (!strncmp((char *) data, ELFMAG, SELFMAG)) {
+        return -1;
+    }
+
+    return 0;
+}
+
 int elf_map(int fd, void **data, int *len)
 {
     int size;

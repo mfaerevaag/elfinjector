@@ -1,11 +1,15 @@
 #ifndef ELF_H
 #define ELF_H
 
+#include <string.h>
+
 #include <elf.h>
 #include <sys/mman.h>
 
 #include "logger.h"
 #include "file.h"
+
+int elf_check_magic(void *data);
 
 int elf_map(int fd, void **data, int *len);
 int elf_mem_subst(void *mem, int len, long pat, long val);
