@@ -42,8 +42,8 @@ int main(int argc, char *argv[])
     }
 
     /* map file to memory */
-    target_fd  = elfi_map(target_fd, &target_data, &target_fsize);
-    payload_fd = elfi_map(payload_fd, &payload_data, &payload_fsize);
+    target_fd  = elf_map(target_fd, &target_data, &target_fsize);
+    payload_fd = elf_map(payload_fd, &payload_data, &payload_fsize);
 
     /* get target binary entry point */
     target_hdr = (Elf64_Ehdr *) target_data;
@@ -57,10 +57,10 @@ int main(int argc, char *argv[])
 
     log_debugf("target entry point: %p", (void *) target_ep);
 
-    /* elfi_dump_segments(target_hdr); */
+    /* elf_dump_segments(target_hdr); */
 
     /* find executable segment and obtain offset and gap size */
-    target_text_seg = elfi_find_gap(target_data, target_fsize,
+    target_text_seg = elf_find_gap(target_data, target_fsize,
                                     &gap_offset, &gap_len);
     if (target_text_seg == NULL) {
         log_err("failed to find gab");
@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
 
     log_debugf("target base address: %p", (void *) target_base);
 
-    payload_text_sec = elfi_find_section(payload_data, ".text");
+    payload_text_sec = elf_find_section(payload_data, ".text");
 
     /* NOTE: not necessary? */
     target_text_seg->p_filesz += payload_text_sec->sh_size;
@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
             payload_text_sec->sh_size);
 
     /* patch return address */
-    ret = elfi_mem_subst(target_data + gap_offset,
+    ret = elf_mem_subst(target_data + gap_offset,
                          payload_text_sec->sh_size,
                          RET_PATTERN, (long) target_ep);
     if (ret) {

@@ -1,6 +1,6 @@
 #include "elf.h"
 
-int elfi_map(int fd, void **data, int *len)
+int elf_map(int fd, void **data, int *len)
 {
     int size;
 
@@ -19,7 +19,7 @@ int elfi_map(int fd, void **data, int *len)
     return fd;
 }
 
-int elfi_mem_subst(void *mem, int len, long pat, long val)
+int elf_mem_subst(void *mem, int len, long pat, long val)
 {
     int i;
     long data;
@@ -45,7 +45,7 @@ int elfi_mem_subst(void *mem, int len, long pat, long val)
     return -1;
 }
 
-Elf64_Phdr *elfi_find_gap(void *data, int fsize, int *gap_offset, int *gap_len)
+Elf64_Phdr *elf_find_gap(void *data, int fsize, int *gap_offset, int *gap_len)
 {
     int         text_end, len;
     Elf64_Ehdr *hdr;
@@ -55,7 +55,7 @@ Elf64_Phdr *elfi_find_gap(void *data, int fsize, int *gap_offset, int *gap_len)
     text_seg = NULL;
 
     /* find .text */
-    text_seg = elfi_find_text(data);
+    text_seg = elf_find_text(data);
     if (text_seg == NULL) {
         log_err("unable to find segment with .text section");
         return NULL;
@@ -87,7 +87,7 @@ Elf64_Phdr *elfi_find_gap(void *data, int fsize, int *gap_offset, int *gap_len)
     return text_seg;
 }
 
-Elf64_Phdr *elfi_find_text(void *data)
+Elf64_Phdr *elf_find_text(void *data)
 {
     int         i;
     Elf64_Ehdr *hdr;
@@ -112,7 +112,7 @@ Elf64_Phdr *elfi_find_text(void *data)
     return seg;
 }
 
-Elf64_Shdr *elfi_find_section(void *data, char *name)
+Elf64_Shdr *elf_find_section(void *data, char *name)
 {
     int        i;
     char       *sname;

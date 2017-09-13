@@ -7,13 +7,13 @@
 #include "logger.h"
 #include "file.h"
 
-int elfi_map(int fd, void **data, int *len);
-int elfi_mem_subst(void *mem, int len, long pat, long val);
+int elf_map(int fd, void **data, int *len);
+int elf_mem_subst(void *mem, int len, long pat, long val);
 
-Elf64_Phdr *elfi_find_text(void *data);
-Elf64_Phdr *elfi_find_gap(void *data, int fsize, int *gap_offset, int *gap_len);
-Elf64_Shdr *elfi_find_section(void *data, char *name);
+Elf64_Phdr *elf_find_text(void *data);
+Elf64_Phdr *elf_find_gap(void *data, int fsize, int *gap_offset, int *gap_len);
+Elf64_Shdr *elf_find_section(void *data, char *name);
 
-void elfi_dump_segments(void *data);
+void elf_dump_segments(void *data);
 
 #endif /* ELF_H */
