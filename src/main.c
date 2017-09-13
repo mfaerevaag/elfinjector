@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
 
     /* find executable segment and obtain offset and gap size */
     target_text_seg = elf_find_gap(target_data, target_fsize,
-                                    &gap_offset, &gap_len);
+                                   &gap_offset, &gap_len);
     if (target_text_seg == NULL) {
         log_err("failed to find gab");
         exit(1);
@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
     target_text_seg->p_memsz += payload_text_sec->sh_size;
 
     log_debugf("payload .text section: 0x%lx (%lu bytes)",
-              payload_text_sec->sh_offset, payload_text_sec->sh_size);
+               payload_text_sec->sh_offset, payload_text_sec->sh_size);
 
     /* check size of payload vs gap */
     if (payload_text_sec->sh_size > (unsigned long) gap_len) {
@@ -99,8 +99,8 @@ int main(int argc, char *argv[])
 
     /* patch return address */
     ret = elf_mem_subst(target_data + gap_offset,
-                         payload_text_sec->sh_size,
-                         RET_PATTERN, (long) target_ep);
+                        payload_text_sec->sh_size,
+                        RET_PATTERN, (long) target_ep);
     if (ret) {
         log_errf("failed to patch return address (%p)",
                  (void *) (target_data + gap_offset));
