@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
     target_text_seg->p_filesz += payload_text_sec->sh_size;
     target_text_seg->p_memsz += payload_text_sec->sh_size;
 
-    log_debugf("payload .text section: %lx (%lx bytes)",
+    log_debugf("payload .text section: 0x%lx (%lu bytes)",
               payload_text_sec->sh_offset, payload_text_sec->sh_size);
 
     /* check size of payload vs gap */

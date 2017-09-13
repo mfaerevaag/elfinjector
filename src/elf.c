@@ -45,7 +45,7 @@ int elf_mem_subst(void *mem, int len, long pat, long val)
         if ((data ^ pat) == 0) {
             *((long *) (ptr + i)) = val;
 
-            log_debugf("pattern %lx at offset %d -> %lx", pat, i, val);
+            log_debugf("pattern found at offset %d -> 0x%lx", pat, i, val);
 
             return 0;
         }
@@ -82,7 +82,7 @@ Elf64_Phdr *elf_find_gap(void *data, int fsize, int *gap_offset, int *gap_len)
         (next_seg->p_offset - text_end) < (unsigned int) fsize) {
         len = next_seg->p_offset - text_end;
 
-        log_infof("gap in .text segment at offset 0x%x (0x%x bytes available)",
+        log_infof("gap in .text segment at offset 0x%x (%d bytes available)",
                   text_end, len);
 
         *gap_offset = text_end;
