@@ -45,7 +45,7 @@ int elf_mem_subst(void *mem, int len, long pat, long val)
         if ((data ^ pat) == 0) {
             *((long *) (ptr + i)) = val;
 
-            log_debugf("pattern found at offset %d -> 0x%lx", pat, i, val);
+            log_debugf("pattern found at offset 0x%x -> 0x%lx", i, val);
 
             return 0;
         }
