@@ -12,7 +12,8 @@
 int elf_check_magic(void *data);
 
 int elf_map(int fd, void **data, int *len);
-int elf_mem_subst(void *mem, int len, long pat, long val);
+
+int elf_patch_rel_jmp(void *mem, int len, long pat, long val);
 
 Elf64_Phdr *elf_find_text(void *data);
 Elf64_Phdr *elf_find_gap(void *data, int fsize, int *gap_offset, int *gap_len);

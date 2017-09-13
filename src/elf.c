@@ -28,7 +28,7 @@ int elf_map(int fd, void **data, int *len)
     return fd;
 }
 
-int elf_mem_subst(void *mem, int len, long pat, long val)
+int elf_patch_rel_jmp(void *mem, int len, long pat, long val)
 {
     int i;
     long data;
@@ -42,8 +42,9 @@ int elf_mem_subst(void *mem, int len, long pat, long val)
         data = *((long *) (ptr + i));
 
         /* check matching pattern */
-        if ((data ^ pat) == 0) {
-            *((long *) (ptr + i)) = val;
+        if (((int) data ^ (int) pat) == 0) {
+            /* add size of code up to, and including, jmp instruction */
+            *((long *) (ptr + i)) = val - i - 4;
 
             log_debugf("pattern found at offset 0x%x -> 0x%lx", i, val);
 

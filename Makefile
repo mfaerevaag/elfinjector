@@ -33,7 +33,7 @@ debug: CFLAGS += -g -DDEBUG
 debug: $(ODIR)/$(TARGET) $(ODIR)
 
 payload: $(PAYLOAD).s $(ODIR)
-	nasm -f elf64 -o $(ODIR)/$(PAYLOAD).o $<
+	nasm -f elf64 -O0 -o $(ODIR)/$(PAYLOAD).o $<
 	ld -o $(ODIR)/$(PAYLOAD) $(ODIR)/$(PAYLOAD).o
 
 dummy: $(DUMMY).c $(ODIR)

