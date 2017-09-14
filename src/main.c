@@ -72,10 +72,6 @@ int main(int argc, char *argv[])
 
     payload_text_sec = elf_find_section(payload_data, ".text");
 
-    /* NOTE: not necessary? */
-    target_text_seg->p_filesz += payload_text_sec->sh_size;
-    target_text_seg->p_memsz += payload_text_sec->sh_size;
-
     log_debugf("payload .text section: 0x%lx (%lu bytes)",
                payload_text_sec->sh_offset, payload_text_sec->sh_size);
 
@@ -91,10 +87,14 @@ int main(int argc, char *argv[])
             payload_data + payload_text_sec->sh_offset,
             payload_text_sec->sh_size);
 
+    /* update segment size */
+    target_text_seg->p_filesz += payload_text_sec->sh_size;
+    target_text_seg->p_memsz += payload_text_sec->sh_size;
+
     /* patch return address */
     rel_jmp_offset = - (gap_offset - (target_ep - target_base));
     ret = elf_patch_rel_jmp(target_data + gap_offset,
-                           payload_text_sec->sh_size,
+                            payload_text_sec->sh_size,
                             RET_PATTERN, (long) rel_jmp_offset);
     if (ret) {
         log_errf("failed to patch return address (%p)",
