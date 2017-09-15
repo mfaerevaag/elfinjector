@@ -15,7 +15,7 @@ int elf_map(int fd, void **data, int *len);
 
 int elf_patch_rel_jmp(void *mem, int len, long pat, long val);
 
-Elf64_Phdr *elf_find_text(void *data);
+Elf64_Phdr *elf_find_text_sec(void *data);
 Elf64_Phdr *elf_find_gap(void *data, int fsize, int *gap_offset, int *gap_len);
 Elf64_Shdr *elf_find_section(void *data, char *name);
 

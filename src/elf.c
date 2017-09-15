@@ -65,7 +65,7 @@ Elf64_Phdr *elf_find_gap(void *data, int fsize, int *gap_offset, int *gap_len)
     text_seg = NULL;
 
     /* find .text */
-    text_seg = elf_find_text(data);
+    text_seg = elf_find_text_sec(data);
     if (text_seg == NULL) {
         log_err("unable to find segment with .text section");
         return NULL;
@@ -97,7 +97,7 @@ Elf64_Phdr *elf_find_gap(void *data, int fsize, int *gap_offset, int *gap_len)
     return text_seg;
 }
 
-Elf64_Phdr *elf_find_text(void *data)
+Elf64_Phdr *elf_find_text_sec(void *data)
 {
     int         i;
     Elf64_Ehdr *hdr;
