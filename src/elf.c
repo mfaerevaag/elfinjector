@@ -149,7 +149,7 @@ Elf64_Shdr *elf_find_section(void *data, char *name)
     return NULL;
 }
 
-void elfi_dump_segments(void *data)
+void elf_dump_segments(void *data)
 {
     int         i, n_seg;
     Elf64_Ehdr *hdr;
